@@ -9,5 +9,6 @@ no public ip
 run web server  
 
 ## VPC:
-2 Public Subnets  
-2 Private Subnets
+Public Subnets = 2  
+Private Subnets = 2  
+Nat Gateway
