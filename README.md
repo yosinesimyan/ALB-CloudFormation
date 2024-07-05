@@ -1,6 +1,8 @@
 # ALB-CloudFormation
 creates load balancer in aws with AutoScaling group and launch template.
+
 Instances:
+
 min instances = 2
 max instances = 5
 desired = 3
