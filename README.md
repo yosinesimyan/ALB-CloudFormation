@@ -12,3 +12,6 @@ run web server
 Public Subnets = 2  
 Private Subnets = 2  
 Nat Gateway
+
+## Use:
+aws cloudformation create-stack --stack-name ALBTest --template-body file://alb.yaml --parameters ParameterKey=EnvironmentName,ParameterValue=YourParamValue
