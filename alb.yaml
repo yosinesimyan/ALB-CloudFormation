@@ -5,33 +5,35 @@ Parameters:
   EnvironmentName: 
     Description: ALBCloudFormation
     Type: String
+    Default: AWS Architect Excersize 1
 
   VPCCIDR: 
     Description: Enter CIDR notation for VPC
     Type: String
-    Default: 10.10.0.0/16
+    Default: 10.0.0.0/16
 
   PublicSubnet1CIDR: 
     Description: Enter CIDR notation for public subnet in first Availability Zone
     Type: String
-    Default: 10.10.1.0/24
+    Default: 10.0.10.0/24
  
   PublicSubnet2CIDR: 
     Description: Enter CIDR notation for public subnet in second Availability Zone
     Type: String
-    Default: 10.10.2.0/24
+    Default: 10.0.20.0/24
 
   PrivateSubnet1CIDR: 
-    Description: Enter CIDR notation for public subnet in third Availability Zone
+    Description: Enter CIDR notation for private subnet in third Availability Zone
     Type: String
-    Default: 10.10.3.0/24
+    Default: 10.0.30.0/24
 
   PrivateSubnet2CIDR: 
-    Description: Enter CIDR notation for public subnet in third Availability Zone
+    Description: Enter CIDR notation for private subnet in third Availability Zone
     Type: String
-    Default: 10.10.4.0/24
+    Default: 10.0.40.0/24
 
 Resources:
+#vpc definition - 1 vpc with internet gateway
   VPC:
     Type: AWS::EC2::VPC
     DeletionPolicy: Delete
@@ -57,7 +59,7 @@ Resources:
     Properties:
       InternetGatewayId: !Ref InternetGateway
       VpcId: !Ref VPC
-
+#subnets - 2 private subnets, 2 public subnets in 2 availability zones with elastic ip and nat gateway
   PublicSubnet1:
     Type: AWS::EC2::Subnet
     DeletionPolicy: Delete
@@ -87,24 +89,24 @@ Resources:
     DeletionPolicy: Delete
     Properties:
       VpcId: !Ref VPC
-      AvailabilityZone: !Select [ 2, !GetAZs '' ]
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
       CidrBlock: !Ref PrivateSubnet1CIDR
       MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
-          Value: !Sub ${EnvironmentName} Private Subnet (AZ3)
+          Value: !Sub ${EnvironmentName} Private Subnet (AZ1)
 
   PrivateSubnet2: 
     Type: AWS::EC2::Subnet
     DeletionPolicy: Delete
     Properties:
       VpcId: !Ref VPC
-      AvailabilityZone: !Select [ 3, !GetAZs '' ]
+      AvailabilityZone: !Select [ 1, !GetAZs '' ]
       CidrBlock: !Ref PrivateSubnet2CIDR
       MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
-          Value: !Sub ${EnvironmentName} Private Subnet (AZ4)
+          Value: !Sub ${EnvironmentName} Private Subnet (AZ2)
 
   PrivateRouteTable:
     Type: AWS::EC2::RouteTable
@@ -179,7 +181,7 @@ Resources:
       RouteTableId: !Ref PrivateRouteTable
       SubnetId: !Ref PrivateSubnet2
 
-
+#security group for web servers
   WebServerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     DeletionPolicy: Delete
@@ -200,6 +202,7 @@ Resources:
         - Key: Name
           Value: !Sub ${EnvironmentName} Allow SSH HTTP
 
+#launch template for web servers
   ALBCloudFormationLaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
     DeletionPolicy: Delete
@@ -224,6 +227,7 @@ Resources:
             sudo systemctl enable httpd
             sudo echo "<h1>Hello from ALB Cloud Formation, this is host $(hostname -f)</h1>" > /var/www/html/index.html
 
+#Auto scaling
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     DeletionPolicy: Delete
@@ -249,7 +253,7 @@ Resources:
       TargetTrackingConfiguration:
         PredefinedMetricSpecification:
           PredefinedMetricType: ASGAverageCPUUtilization
-        TargetValue: 50
+        TargetValue: 30
 
   ScalingPolicy:
     Type: 'AWS::AutoScaling::ScalingPolicy'
@@ -276,7 +280,7 @@ Resources:
       ComparisonOperator: GreaterThanThreshold
       MetricName: CPUUtilization
 
-
+#Load Balancer
   ALBTargetGroups:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -314,8 +318,76 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref ALBTargetGroups
       LoadBalancerArn: !Ref ALB
+
+#The Bastion
+  ALBCloudFormationLaunchTemplate:
+    Type: AWS::EC2::Instance
+    DeletionPolicy: Delete
+    Properties:
+      ImageId: ami-04823729c75214919
+      InstanceType: t2.micro
+      KeyName: Yosi-KP
+      AvailabilityZone: !Select [ 1, !GetAZs '' ]
+      NetworkInterfaces: 
+        - DeviceIndex: 0
+          AssociatePublicIpAddress: True
+          Groups:
+            - !Ref WebServerSecurityGroup
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemctl enable httpd
+          sudo echo "<h1>Hello from ALB Cloud Formation, this is host $(hostname -f)</h1>" > /var/www/html/index.html    
  
-      
+#s3 bucket 
+     S3Bucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+  BucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      PolicyDocument:
+        Id: MyPolicy
+        Version: 2012-10-17
+        Statement:
+          - Sid: PublicReadForGetBucketObjects
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Join 
+              - ''
+              - - 'arn:aws:s3:::'
+                - !Ref S3Bucket
+                - /*
+      Bucket: !Ref S3Bucket
+Outputs:
+  WebsiteURL:
+    Value: !GetAtt 
+      - S3Bucket
+      - WebsiteURL
+    Description: URL for website hosted on S3
+  S3BucketSecureURL:
+    Value: !Join 
+      - ''
+      - - 'https://'
+        - !GetAtt 
+          - S3Bucket
+          - DomainName
+    Description: Name of S3 bucket to hold website content
+     
 Outputs:
   VPC:
     Description: Reference to created VPC
