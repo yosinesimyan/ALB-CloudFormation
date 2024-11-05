@@ -2,9 +2,9 @@
 creates load balancer in aws with AutoScaling group and launch template.
 
 ## Instances:  
-min instances = 2  
-max instances = 5  
-desired = 3  
+min instances = 1  
+max instances = 4  
+desired = 2
 no public ip  
 run web server  
 
@@ -12,6 +12,7 @@ run web server
 Public Subnets = 2  
 Private Subnets = 2  
 Nat Gateway
+Internet Gateway
 
 ## Use:
 aws cloudformation create-stack --stack-name ALBTest --template-body file://alb.yaml --parameters ParameterKey=EnvironmentName,ParameterValue=YourParamValue  
