@@ -1,0 +1,55 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "CloudFormation template to create Admin and User1 accounts with specified roles and policies."
+
+Resources:
+  User1:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: Admin2
+      LoginProfile:
+       Password: Qwer1234!
+       PasswordResetRequired: false
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/job-function/Billing
+        - arn:aws:iam::aws:policy/ReadOnlyAccess
+
+  User2:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: user2
+      LoginProfile:
+       Password: Qwer1234!
+       PasswordResetRequired: false
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
+
+  AdministratorAccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: Asa-Admin2
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - arn:aws:iam::891376996211:root
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+
+  User2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: asa-IAM-FA2
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - arn:aws:iam::891376996211:root
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/IAMFullAccess

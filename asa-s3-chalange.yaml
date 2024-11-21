@@ -1,0 +1,91 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "CloudFormation template to create Admin and User1 accounts with specified roles and policies."
+
+Resources:
+
+  S3Bucket:
+    Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: s3-departments 
+
+  User1:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: IT-A-01
+      LoginProfile:
+        Password: Qwer1234!
+        PasswordResetRequired: false
+      Policies:
+        - PolicyName: bucket-it-access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Action:
+              - s3:*
+              Resource:
+                - !Sub arn:aws:s3:::${S3Bucket}
+                - !Sub arn:aws:s3:::${S3Bucket}/IT/*
+      
+  User2:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: DevOps-A-01
+      LoginProfile:
+        Password: Qwer1234!
+        PasswordResetRequired: false
+      Policies:
+      - PolicyName: bucket-devops-access
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - s3:*
+            Resource:
+              - !Sub arn:aws:s3:::${S3Bucket}
+              - !Sub arn:aws:s3:::${S3Bucket}/DevOps/*
+      
+  User3:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: Admin-A-01
+      LoginProfile:
+        Password: Qwer1234!
+        PasswordResetRequired: false
+      Policies:
+      - PolicyName: bucket-admin-access
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - s3:*
+            Resource:
+              - !Sub arn:aws:s3:::${S3Bucket}
+              - !Sub arn:aws:s3:::${S3Bucket}/*
+      
+
+  User4:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: Marketing-A-01
+      LoginProfile:
+        Password: Qwer1234!
+        PasswordResetRequired: false
+      Policies:
+        - PolicyName: bucket-marketing-access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Action:
+              - s3:*
+              Resource:
+                - !Sub arn:aws:s3:::${S3Bucket}
+                - !Sub arn:aws:s3:::${S3Bucket}/Marketing/*
+
+   
+
+        

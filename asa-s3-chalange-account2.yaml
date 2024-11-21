@@ -1,0 +1,97 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "CloudFormation template to create accounts with s3 permissins on another account."
+Parameters: 
+  BucketArn: 
+    Description: the bucket ARN at acount1
+    Type: String
+    Default: arn:aws:s3:::s3-departments
+
+Resources:
+
+  User1:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: IT-B-02
+      LoginProfile:
+        Password: Qwer1234!
+        PasswordResetRequired: false
+      Policies:
+      - PolicyName: account1-s3-IT-access
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - s3:Get*
+            - s3:List*
+            - s3:Describe*
+            Resource:
+              - !Ref BucketArn
+              - !Sub ${BucketArn}/IT/*    
+
+  User2:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: DevOps-B-02
+      LoginProfile:
+        Password: Qwer1234!
+        PasswordResetRequired: false
+      Policies:
+      - PolicyName: account1-s3-DevOps-access
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - s3:Get*
+            - s3:List*
+            - s3:Describe*
+            Resource:
+              - !Ref BucketArn
+              - !Sub ${BucketArn}/DevOps/*
+    
+  User3:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: Admin-B-02
+      LoginProfile:
+        Password: Qwer1234!
+        PasswordResetRequired: false
+      Policies:
+      - PolicyName: account1-s3-Admin-access
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - s3:*
+            Resource:
+              - !Ref BucketArn
+              - !Sub ${BucketArn}/*
+                  
+
+  User4:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: Marketing-B-02
+      LoginProfile:
+        Password: Qwer1234!
+        PasswordResetRequired: false
+      Policies:
+      - PolicyName: account1-s3-Marketing-access
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - s3:Get*
+            - s3:List*
+            - s3:Describe*
+            Resource:
+              - !Ref BucketArn
+              - !Sub ${BucketArn}/Marketing/*
+    
+
+   
+
+        
