@@ -5,32 +5,37 @@ Parameters:
   EnvironmentName: 
     Description: ALBCloudFormation
     Type: String
-    Default: AWS Architect Excersize 1
+    Default: LovelyCF
 
   VPCCIDR: 
     Description: Enter CIDR notation for VPC
     Type: String
-    Default: 10.0.0.0/16
+    Default: 10.0.160.0/19
 
   PublicSubnet1CIDR: 
     Description: Enter CIDR notation for public subnet in first Availability Zone
     Type: String
-    Default: 10.0.10.0/24
+    Default: 10.0.161.0/24
  
   PublicSubnet2CIDR: 
     Description: Enter CIDR notation for public subnet in second Availability Zone
     Type: String
-    Default: 10.0.20.0/24
+    Default: 10.0.164.0/24
 
   PrivateSubnet1CIDR: 
     Description: Enter CIDR notation for private subnet in third Availability Zone
     Type: String
-    Default: 10.0.30.0/24
+    Default: 10.0.168.0/22
 
   PrivateSubnet2CIDR: 
     Description: Enter CIDR notation for private subnet in third Availability Zone
     Type: String
-    Default: 10.0.40.0/24
+    Default: 10.0.176.0/22
+
+  S3BucketName:
+    Description: the name of s3 bucket
+    Type: String
+    Default: firstbucket-yosi
 
 Resources:
 #vpc definition - 1 vpc with internet gateway
@@ -43,7 +48,7 @@ Resources:
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: VPCCloudFormation
+          Value: VPCLovelyNetwork
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
@@ -51,7 +56,7 @@ Resources:
     Properties:
       Tags:
         - Key: Name
-          Value: IGWCloudFormation
+          Value: IGWLovelyNetwork
 
   InternetGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
@@ -198,10 +203,45 @@ Resources:
       - IpProtocol: tcp
         FromPort: 22
         ToPort: 22
-        CidrIp: 0.0.0.0/0
+        CidrIp: !Ref VPCCIDR
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} Allow SSH HTTP
+
+#assume role for ec2 machines to enable access to s3 bucket, Secrets Manager and RDS
+  EC2InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: Ec2AllowAccessS3AndSecretsManager
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:                
+              # Access to Secrets Manager
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                  - secretsmanager:DescribeSecret
+                Resource: arn:aws:secretsmanager:eu-central-1:891376996211:secret:rds!db-a1cbd8ba-0bc3-4841-aba2-77f38afd5d55-4EZMrE
+              # Access s3 files
+              #- Effect: Allow
+              #  Action: s3:GetObject
+              #  Resource: arn:aws:s3:::firstbucket-yosi
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref EC2InstanceRole
+
 
 #launch template for web servers
   ALBCloudFormationLaunchTemplate:
@@ -210,25 +250,25 @@ Resources:
     Properties:
       LaunchTemplateName: ALBAutoScaling
       LaunchTemplateData:
-        ImageId: ami-04823729c75214919
+        ImageId: ami-0a9f392d545ad0363
         InstanceType: t2.micro
-        KeyName: Yosi-KP
+        KeyName: yosu-kp
+        IamInstanceProfile:
+          Name: !Ref EC2InstanceProfile
         NetworkInterfaces: 
           - DeviceIndex: 0
-            AssociatePublicIpAddress: false
+            AssociatePublicIpAddress: true
             Groups:
               - !Ref WebServerSecurityGroup
         UserData: 
-          Fn::Base64: !Sub |
-            #!/bin/bash
-            sudo yum update -y
-            sudo yum install -y httpd
-            sudo yum install stress
-            sudo systemctl start httpd
-            sudo systemctl enable httpd
-            sudo echo "<h1>Hello from ALB Cloud Formation, this is host $(hostname -f)</h1>" > /var/www/html/index.html
+           Fn::Base64: !Sub |
+             #!/bin/bash -xe
+             sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-0f2bfce349a36d440.efs.eu-central-1.amazonaws.com:/ /var/www/html/wp-content
+        #     aws s3 cp s3://${S3BucketName}/userdata.sh /tmp/userdata.sh
+        #     chmod +x /tmp/userdata.sh
+        #     /tmp/userdata.sh
+        #     aws s3 cp s3://${S3BucketName}/wp-config.php
 
-#Auto scaling
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     DeletionPolicy: Delete
@@ -292,7 +332,7 @@ Resources:
       Protocol: HTTP
       Tags:
         - Key: Name
-          Value: ALBCloudFormationTG
+          Value: LovelyTargetGroup
 
   ALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -306,7 +346,7 @@ Resources:
       - !Ref PublicSubnet2
       Tags:
         - Key: Name
-          Value: CloudFormationALB
+          Value: LovelyLoadBalancer
 
   ALBlistener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -323,9 +363,9 @@ Resources:
     Type: AWS::EC2::Instance
     DeletionPolicy: Delete
     Properties:
-      ImageId: ami-04823729c75214919
+      ImageId: ami-071f0796b00a3a89d
       InstanceType: t2.micro
-      KeyName: Yosi-KP
+      KeyName: yosu-kp
       IamInstanceProfile: EC2-S3-ACC
       AvailabilityZone: !Select [ 0, !GetAZs '' ]
       SecurityGroupIds:
@@ -366,6 +406,27 @@ Resources:
                 - /*
       Bucket: !Ref S3Bucket
 
+#move RDS to new VPC 
+  myDBSubnetGroup: 
+    Type: AWS::RDS::DBSubnetGroup
+    Properties: 
+      DBSubnetGroupDescription: new subnet group from VPC
+      SubnetIds: 
+        - Ref: PublicSubnet1
+        - Ref: PublicSubnet2
+        - Ref: PrivateSubnet1
+        - Ref: PrivateSubnet2
+      Tags: 
+        - Key: name
+          Value: LovelyRDSSubnetGroup 
+
+  ModifyDBInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: cnd47-rds
+      DBSubnetGroupName: !Ref NewDBSubnetGroupName
+    DependsOn: DBSubnetGroup
+    
 Outputs:
   VPC:
     Description: Reference to created VPC

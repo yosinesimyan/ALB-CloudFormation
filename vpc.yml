@@ -1,0 +1,33 @@
+Description:  CloudFormation template to deploy a VPC with two public subnets and two private subnets spread
+  across two Availability Zones. Also to create an auto scaling group and application load balancer.
+
+Parameters: 
+  EnvironmentName: 
+    Description: ALBCloudFormation
+    Type: String
+    Default: AWS Architect Excersize 1
+
+  VPCCIDR: 
+    Description: Enter CIDR notation for VPC
+    Type: String
+    Default: 10.0.0.0/16
+
+  PublicSubnet1CIDR: 
+    Description: Enter CIDR notation for public subnet in first Availability Zone
+    Type: String
+    Default: 10.0.10.0/24
+ 
+  PublicSubnet2CIDR: 
+    Description: Enter CIDR notation for public subnet in second Availability Zone
+    Type: String
+    Default: 10.0.20.0/24
+
+  PrivateSubnet1CIDR: 
+    Description: Enter CIDR notation for private subnet in third Availability Zone
+    Type: String
+    Default: 10.0.30.0/24
+
+  PrivateSubnet2CIDR: 
+    Description: Enter CIDR notation for private subnet in third Availability Zone
+    Type: String
+    Default: 10.0.40.0/24
