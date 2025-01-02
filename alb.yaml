@@ -372,39 +372,6 @@ Resources:
       - Ref: WebServerSecurityGroup
       SubnetId:
          Ref: PublicSubnet1
-      
- 
-#s3 bucket 
-  S3Bucket:
-    Type: 'AWS::S3::Bucket'
-    Properties:
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: false
-        BlockPublicPolicy: false
-        IgnorePublicAcls: false
-        RestrictPublicBuckets: false
-      WebsiteConfiguration:
-        IndexDocument: index.html
-        ErrorDocument: error.html
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
-  BucketPolicy:
-    Type: 'AWS::S3::BucketPolicy'
-    Properties:
-      PolicyDocument:
-        Id: MyPolicy
-        Version: 2012-10-17
-        Statement:
-          - Sid: PublicReadForGetBucketObjects
-            Effect: Allow
-            Principal: '*'
-            Action: 's3:GetObject'
-            Resource: !Join 
-              - ''
-              - - 'arn:aws:s3:::'
-                - !Ref S3Bucket
-                - /*
-      Bucket: !Ref S3Bucket
 
 #move RDS to new VPC 
   myDBSubnetGroup: 
@@ -426,7 +393,7 @@ Resources:
       DBInstanceIdentifier: cnd47-rds
       DBSubnetGroupName: !Ref NewDBSubnetGroupName
     DependsOn: DBSubnetGroup
-    
+
 Outputs:
   VPC:
     Description: Reference to created VPC
