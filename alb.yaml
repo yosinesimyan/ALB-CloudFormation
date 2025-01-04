@@ -378,21 +378,19 @@ Resources:
     Type: AWS::RDS::DBSubnetGroup
     Properties: 
       DBSubnetGroupDescription: new subnet group from VPC
+      DBSubnetGroupName: LovelyRDSSubnetGroup
       SubnetIds: 
         - Ref: PublicSubnet1
         - Ref: PublicSubnet2
         - Ref: PrivateSubnet1
         - Ref: PrivateSubnet2
-      Tags: 
-        - Key: name
-          Value: LovelyRDSSubnetGroup 
 
   ModifyDBInstance:
     Type: AWS::RDS::DBInstance
     Properties:
       DBInstanceIdentifier: cnd47-rds
-      DBSubnetGroupName: !Ref NewDBSubnetGroupName
-    DependsOn: DBSubnetGroup
+      DBSubnetGroupName: LovelyRDSSubnetGroup
+    DependsOn: myDBSubnetGroup
 
 Outputs:
   VPC:
@@ -424,16 +422,16 @@ Outputs:
     Description: Security group with ingress rule
     Value: !Ref WebServerSecurityGroup
 
-  WebsiteURL:
-    Value: !GetAtt 
-      - S3Bucket
-      - WebsiteURL
-    Description: URL for website hosted on S3
-  S3BucketSecureURL:
-    Value: !Join 
-      - ''
-      - - 'https://'
-        - !GetAtt 
-          - S3Bucket
-          - DomainName
-    Description: Name of S3 bucket to hold website content
+  # WebsiteURL:
+  #   Value: !GetAtt 
+  #     - S3Bucket
+  #     - WebsiteURL
+  #   Description: URL for website hosted on S3
+  # S3BucketSecureURL:
+  #   Value: !Join 
+  #     - ''
+  #     - - 'https://'
+  #       - !GetAtt 
+  #         - S3Bucket
+  #         - DomainName
+  #   Description: Name of S3 bucket to hold website content
